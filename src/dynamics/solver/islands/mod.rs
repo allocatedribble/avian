@@ -46,7 +46,11 @@ mod sleeping;
 pub use sleeping::{IslandSleepingPlugin, SleepBody, SleepIslands, WakeBody, WakeIslands};
 
 use bevy::{
-    ecs::{entity_disabling::Disabled, lifecycle::HookContext, world::DeferredWorld},
+    ecs::{
+        entity_disabling::Disabled,
+        lifecycle::{Discard, HookContext},
+        world::DeferredWorld,
+    },
     prelude::*,
 };
 
@@ -78,7 +82,7 @@ impl Plugin for IslandPlugin {
         // Add `BodyIslandNode` for each dynamic and kinematic rigid body
         // when the associated rigid body is enabled.
         app.add_observer(
-            |trigger: On<Replace, RigidBodyDisabled>,
+            |trigger: On<Discard, RigidBodyDisabled>,
              rb_query: Query<&RigidBody>,
              mut commands: Commands| {
                 let Ok(rb) = rb_query.get(trigger.entity) else {
@@ -92,7 +96,7 @@ impl Plugin for IslandPlugin {
             },
         );
         app.add_observer(
-            |trigger: On<Replace, Disabled>,
+            |trigger: On<Discard, Disabled>,
              rb_query: Query<
                 &RigidBody,
                 (

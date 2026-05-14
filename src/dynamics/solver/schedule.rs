@@ -4,8 +4,12 @@
 //! See [`SolverSchedulePlugin`].
 
 use crate::prelude::*;
+#[cfg(feature = "parallel")]
+use bevy::ecs::schedule::MultiThreadedExecutor;
+#[cfg(not(feature = "parallel"))]
+use bevy::ecs::schedule::SingleThreadedExecutor;
 use bevy::{
-    ecs::schedule::{ExecutorKind, LogLevel, ScheduleBuildSettings, ScheduleLabel},
+    ecs::schedule::{LogLevel, ScheduleBuildSettings, ScheduleLabel},
     prelude::*,
 };
 use dynamics::integrator::IntegrationSystems;
@@ -50,8 +54,12 @@ impl Plugin for SolverSchedulePlugin {
 
         // Set up the substep schedule, the schedule that runs systems in the inner substepping loop.
         app.edit_schedule(SubstepSchedule, |schedule| {
+            #[cfg(feature = "parallel")]
+            schedule.set_executor(MultiThreadedExecutor::new());
+            #[cfg(not(feature = "parallel"))]
+            schedule.set_executor(SingleThreadedExecutor::new());
+
             schedule
-                .set_executor_kind(ExecutorKind::SingleThreaded)
                 .set_build_settings(ScheduleBuildSettings {
                     ambiguity_detection: LogLevel::Error,
                     ..default()

@@ -10,3 +10,12 @@ std_instead_of_core = "warn"
 
 [profile.dev]
 opt-level = 1 # Use slightly better optimization, so examples work
+
+[patch.crates-io]
+bevy = { path = "../bevy" }
+bevy_math = { path = "../bevy/crates/bevy_math" }
+bevy_reflect = { path = "../bevy/crates/bevy_reflect" }
+bevy_heavy = { path = "../compat/bevy_heavy-0.4.0" }
+bevy_transform_interpolation = { path = "../compat/bevy_transform_interpolation-0.4.0" }
+glam_matrix_extras = { path = "../compat/glam_matrix_extras-0.2.0" }
+glamx = { path = "../compat/glamx-0.1.3" }

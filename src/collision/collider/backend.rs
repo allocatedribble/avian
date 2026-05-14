@@ -12,7 +12,7 @@ use crate::{
     prelude::*,
 };
 #[cfg(all(feature = "bevy_scene", feature = "default-collider"))]
-use bevy::scene::SceneInstance;
+use bevy::scene::{ScenePatch, ScenePatchInstance};
 use bevy::{
     ecs::{intern::Interned, schedule::ScheduleLabel},
     prelude::*,
@@ -236,13 +236,10 @@ impl<C: ScalableCollider> Plugin for ColliderBackendPlugin<C> {
         );
 
         #[cfg(feature = "default-collider")]
-        app.add_systems(
-            Update,
-            (
-                init_collider_constructors,
-                init_collider_constructor_hierarchies,
-            ),
-        );
+        app.add_systems(Update, init_collider_constructors);
+
+        #[cfg(feature = "default-collider")]
+        app.add_systems(PostUpdate, init_collider_constructor_hierarchies);
     }
 }
 
@@ -326,9 +323,8 @@ fn init_collider_constructor_hierarchies(
     #[cfg(feature = "collider-from-mesh")] meshes: Res<Assets<Mesh>>,
     #[cfg(feature = "collider-from-mesh")] mesh_handles: Query<&Mesh3d>,
     #[cfg(feature = "collider-from-mesh")] mut collider_cache: Option<ResMut<ColliderCache>>,
-    #[cfg(feature = "bevy_scene")] scene_spawner: Res<SceneSpawner>,
-    #[cfg(feature = "bevy_scene")] scenes: Query<&SceneRoot>,
-    #[cfg(feature = "bevy_scene")] scene_instances: Query<&SceneInstance>,
+    #[cfg(feature = "bevy_scene")] scene_patches: Res<Assets<ScenePatch>>,
+    #[cfg(feature = "bevy_scene")] scene_instances: Query<&ScenePatchInstance>,
     collider_constructors: Query<(Entity, &ColliderConstructorHierarchy)>,
     children: Query<&Children>,
     child_query: Query<(Option<&Name>, Option<&Collider>)>,
@@ -338,14 +334,11 @@ fn init_collider_constructor_hierarchies(
     for (scene_entity, collider_constructor_hierarchy) in collider_constructors.iter() {
         #[cfg(feature = "bevy_scene")]
         {
-            if scenes.contains(scene_entity) {
-                if let Ok(scene_instance) = scene_instances.get(scene_entity) {
-                    if !scene_spawner.instance_is_ready(**scene_instance) {
-                        // Wait for the scene to be ready
-                        continue;
-                    }
-                } else {
-                    // SceneInstance is added in the SpawnScene schedule, so it might not be available yet
+            if let Ok(scene_instance) = scene_instances.get(scene_entity) {
+                let Some(scene_patch) = scene_patches.get(&scene_instance.0) else {
+                    continue;
+                };
+                if scene_patch.resolved.is_none() {
                     continue;
                 }
             }

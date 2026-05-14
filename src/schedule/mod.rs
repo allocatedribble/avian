@@ -12,11 +12,15 @@ use core::time::Duration;
 #[allow(unused_imports)]
 use crate::prelude::*;
 
+#[cfg(feature = "parallel")]
+use bevy::ecs::schedule::MultiThreadedExecutor;
+#[cfg(not(feature = "parallel"))]
+use bevy::ecs::schedule::SingleThreadedExecutor;
 use bevy::{
     ecs::{
         change_detection::Tick,
         intern::Interned,
-        schedule::{ExecutorKind, LogLevel, ScheduleBuildSettings, ScheduleLabel},
+        schedule::{LogLevel, ScheduleBuildSettings, ScheduleLabel},
         system::SystemChangeTick,
     },
     prelude::*,
@@ -86,12 +90,15 @@ impl Plugin for PhysicsSchedulePlugin {
 
         // Set up the physics schedule, the schedule that advances the physics simulation
         app.edit_schedule(PhysicsSchedule, |schedule| {
-            schedule
-                .set_executor_kind(ExecutorKind::SingleThreaded)
-                .set_build_settings(ScheduleBuildSettings {
-                    ambiguity_detection: LogLevel::Error,
-                    ..default()
-                });
+            #[cfg(feature = "parallel")]
+            schedule.set_executor(MultiThreadedExecutor::new());
+            #[cfg(not(feature = "parallel"))]
+            schedule.set_executor(SingleThreadedExecutor::new());
+
+            schedule.set_build_settings(ScheduleBuildSettings {
+                ambiguity_detection: LogLevel::Error,
+                ..default()
+            });
 
             schedule.configure_sets(
                 (
